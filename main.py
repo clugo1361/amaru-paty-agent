@@ -501,6 +501,7 @@ class AgentRequest(BaseModel):
     model: str = Field(default="claude-sonnet-4-5-20250929", description="Model selected by n8n routing")
     constitutional_flags: list[str] = Field(default_factory=list)
     routing_metadata: dict = Field(default_factory=dict)
+    corpus_context: str | None = Field(default=None, description="Retrieved context from n8n Gemini File Search")
 
 class AgentResponse(BaseModel):
     response: str
@@ -646,10 +647,14 @@ async def chat(request: AgentRequest):
             "content": turn["content"]
         })
     
-    # Add current user message
+    # Add current user message (with corpus context if provided)
+    user_content = request.query
+    if request.corpus_context:
+        user_content = f"{request.corpus_context}\n\n---\n\n**Paty's message:**\n{request.query}"
+    
     messages.append({
         "role": "user",
-        "content": request.query
+        "content": user_content
     })
     
     # Call Claude with the model n8n specified
